@@ -5,23 +5,25 @@ using UnityEngine;
 public class backgammon : MonoBehaviour
 {
     // Start is called before the first frame update
+
+    enum color
+    {
+        white,
+        black
+    }
+
     void Start()
     {
         Point p = new Point();
 
-        p.showPointProperty();
-        p.IncreaseChip(1);
-        p.showPointProperty();
-        p.IncreaseChip(-1);
-        p.showPointProperty();
-        p.IncreaseChip(-1);
-        p.showPointProperty();
-        p.DecreaseChip(-1);
-        p.showPointProperty();
-        p.DecreaseChip(1);
-        p.showPointProperty();
-        p.DecreaseChip(-1);
-        p.showPointProperty();
+       //
+        p.IncreaseChip(color.black.ToString());
+        p.IncreaseChip(color.white.ToString());
+        p.IncreaseChip(color.white.ToString());
+        p.IncreaseChip(color.black.ToString());
+        p.DecreaseChip(color.black.ToString());
+        p.DecreaseChip(color.black.ToString());
+        p.DecreaseChip(color.white.ToString());
     }
 
     // Update is called once per frame
@@ -34,15 +36,15 @@ public class backgammon : MonoBehaviour
 public class Point
 {
     // メンバ変数
-    private int _color = 1;
+    private string _color = "black";
     private int _chips = 0;
 
     // メンバ関数
-    public void IncreaseChip(int color)
+    public void IncreaseChip(string color)
     {
         if (!this.canIncreaseChip(color))
         {
-            Debug.LogWarning("このポイントにチップは置けません。");
+            Debug.LogWarning(color + "はこのポイントにチップを置けません。");
             return;
         }
 
@@ -68,40 +70,42 @@ public class Point
                 _chips += 1;
                 break;
         }
+        this.ShowPointProperty();
     }
-    public void DecreaseChip(int color)
+    public void DecreaseChip(string color)
     {
         if(!this.canDecreaseChip(color))
         {
-            Debug.LogWarning("このポイントからチップを取れません。");
+            Debug.LogWarning(color + "はこのポイントからチップを取れません。");
             return;
         }
         _chips -= 1;
+        this.ShowPointProperty();
     }
-    public int getColor()
+    public string GetColor()
     {
         return _color;
     }
-    public int getChipNum()
+    public int GetChipNum()
     {
         return _chips;
     }
-    public void showPointProperty()
+    public void ShowPointProperty()
     {
         Debug.Log("color : " + _color + "        chips : " + _chips);
     }
 
-    public bool canIncreaseChip(int color)
+    public bool canIncreaseChip(string color)
     {
-        if(_chips > 1 & _color != color)
+        if((_chips > 1) && (_color != color))
         {
             return false;
         }
         return true;
     }
-    public bool canDecreaseChip(int color)
+    public bool canDecreaseChip(string color)
     {
-        if(_chips == 0 | _color != color)
+        if((_chips == 0) || (_color != color))
         {
             return false;
         }
@@ -112,6 +116,27 @@ public class Point
 public class Quadrant
 {
     private Point[] _points = new Point[6];
+    private int _whiteChips = 0;
+    private int _blackChips = 0;
+
+    public void UpdateChips()
+    {
+        _whiteChips = 0;
+        _blackChips = 0;
+
+        foreach(Point point in _points)
+        {
+            switch (point.GetColor())
+            {
+                case "white":
+                    _whiteChips += point.GetChipNum();
+                    break;
+                case "black":
+                    _blackChips += point.GetChipNum();
+                    break;
+            }
+        }
+    }
 }
 
 public class Board
