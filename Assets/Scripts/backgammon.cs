@@ -14,16 +14,25 @@ public class backgammon : MonoBehaviour
 
     void Start()
     {
-        Point p = new Point();
+        Quadrant q = new Quadrant();
 
-       //
-        p.IncreaseChip(color.black.ToString());
-        p.IncreaseChip(color.white.ToString());
-        p.IncreaseChip(color.white.ToString());
-        p.IncreaseChip(color.black.ToString());
-        p.DecreaseChip(color.black.ToString());
-        p.DecreaseChip(color.black.ToString());
-        p.DecreaseChip(color.white.ToString());
+        q.IncreaseChip(color.black.ToString(), 0);
+        q.IncreaseChip(color.white.ToString(), 1);
+        q.IncreaseChip(color.white.ToString(), 2);
+        q.IncreaseChip(color.black.ToString(), 0);
+        q.DecreaseChip(color.black.ToString(), 2);
+        q.DecreaseChip(color.black.ToString(), 5);
+        q.DecreaseChip(color.white.ToString(), 3);
+
+        bool[] array = new bool[6];
+        q.GetDecreasablePoints(color.black.ToString(), ref array);
+
+        string log = "\n";
+        foreach(bool b in array)
+        {
+            log += $"{b}\n";
+        }
+        Debug.Log(log);
     }
 
     // Update is called once per frame
@@ -40,6 +49,15 @@ public class Point
     private int _chips = 0;
 
     // メンバ関数
+    private void ShowProperty()
+    {
+        string log = "\n";
+        log += $"color : {_color}\n";
+        log += $"chips : {_chips}\n";
+
+        Debug.Log(log);
+    }
+
     public void IncreaseChip(string color)
     {
         if (!this.canIncreaseChip(color))
@@ -70,7 +88,7 @@ public class Point
                 _chips += 1;
                 break;
         }
-        this.ShowPointProperty();
+        // this.ShowProperty();
     }
     public void DecreaseChip(string color)
     {
@@ -80,7 +98,7 @@ public class Point
             return;
         }
         _chips -= 1;
-        this.ShowPointProperty();
+        // this.ShowProperty();
     }
     public string GetColor()
     {
@@ -89,10 +107,6 @@ public class Point
     public int GetChipNum()
     {
         return _chips;
-    }
-    public void ShowPointProperty()
-    {
-        Debug.Log("color : " + _color + "        chips : " + _chips);
     }
 
     public bool canIncreaseChip(string color)
@@ -115,11 +129,26 @@ public class Point
 
 public class Quadrant
 {
+    // メンバ変数
     private Point[] _points = new Point[6];
+    private bool[] _increasableWhitePoint = new bool[6];
+    private bool[] _increasableBlackPoint = new bool[6];
+    private bool[] _decreasableWhitePoint = new bool[6];
+    private bool[] _decreasableBlackPoint = new bool[6];
     private int _whiteChips = 0;
     private int _blackChips = 0;
 
-    public void UpdateChips()
+    // コンストラクタ
+    public Quadrant()
+    {
+        for(int i = 0; i < 6; i++)
+        {
+            _points[i] = new Point();
+        }
+    }
+
+    // メンバ関数
+    private void UpdateChips()
     {
         _whiteChips = 0;
         _blackChips = 0;
@@ -136,6 +165,71 @@ public class Quadrant
                     break;
             }
         }
+    }
+    private void UpdateEnablePoints()
+    {
+        for (int i = 0; i < 6; i++)
+        {
+            _increasableWhitePoint[i] = _points[i].canIncreaseChip("white");
+            _increasableBlackPoint[i] = _points[i].canIncreaseChip("black");
+
+            _decreasableWhitePoint[i] = _points[i].canDecreaseChip("white");
+            _decreasableBlackPoint[i] = _points[i].canDecreaseChip("black");
+        }
+    }
+
+    public void IncreaseChip(string color, int itr)
+    {
+        _points[itr % 6].IncreaseChip(color);
+        this.UpdateChips();
+        this.ShowProperty();
+    }
+    public void DecreaseChip(string color, int itr)
+    {
+        _points[itr % 6].DecreaseChip(color);
+        this.UpdateChips();
+        this.ShowProperty();
+    }
+
+    public void GetIncreasablePoints(string color, ref bool[] array)
+    {
+        this.UpdateEnablePoints();
+        switch (color)
+        {
+            case "white":
+                array = _increasableWhitePoint;
+                break;
+            case "black":
+                array = _increasableBlackPoint;
+                break;
+        }
+    }
+    public void GetDecreasablePoints(string color, ref bool[] array)
+    {
+        this.UpdateEnablePoints();
+        switch (color)
+        {
+            case "white":
+                array = _decreasableWhitePoint;
+                break;
+            case "black":
+                array = _decreasableBlackPoint;
+                break;
+        }
+    }
+
+    public void ShowProperty()
+    {
+        string log = "\n";
+
+        foreach (Point point in _points)
+        {
+            log += $"color : {point.GetColor()}  chips : {point.GetChipNum()}\n";
+        }
+        log += $"white chips : { _whiteChips}\n";
+        log += $"black chips : { _blackChips}\n";
+
+        Debug.Log(log);
     }
 }
 
