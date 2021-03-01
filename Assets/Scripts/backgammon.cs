@@ -16,9 +16,21 @@ public class backgammon : MonoBehaviour
     {
         Board b = new Board();
 
-        b.moveChip(color.white.ToString(), 5, 7);
+        b.MoveChip(color.white.ToString(), 5, 8);
+        b.MoveChip(color.black.ToString(), 11, 8);
 
         b.ShowProperty();
+
+        Debug.Log(b.canGoal(color.black.ToString()));
+
+        List<bool> array = new List<bool>();
+        string log = "\n";
+        b.GetDecreasablePoints(color.black.ToString(), ref array);
+        foreach(bool isX in array)
+        {
+            log += $"{isX}\n";
+        }
+        Debug.Log(log);
     }
 
     // Update is called once per frame
@@ -120,10 +132,8 @@ public class Quadrant
 {
     // メンバ変数
     private Point[] _points = new Point[6];
-    private bool[] _increasableWhitePoint = new bool[6];
-    private bool[] _increasableBlackPoint = new bool[6];
-    private bool[] _decreasableWhitePoint = new bool[6];
-    private bool[] _decreasableBlackPoint = new bool[6];
+    private Dictionary<string, List<bool>> _increasablePoint = new Dictionary<string, List<bool>>();
+    private Dictionary<string, List<bool>> _decreasablePoint = new Dictionary<string, List<bool>>();
     private Dictionary<string, int> _chipNum = new Dictionary<string, int>();
 
     // コンストラクタ
@@ -133,6 +143,12 @@ public class Quadrant
         {
             _points[i] = new Point();
         }
+
+        _increasablePoint.Add("white", new List<bool>());
+        _increasablePoint.Add("black", new List<bool>());
+
+        _decreasablePoint.Add("white", new List<bool>());
+        _decreasablePoint.Add("black", new List<bool>());
 
         _chipNum.Add("white", 0);
         _chipNum.Add("black", 0);
@@ -153,11 +169,11 @@ public class Quadrant
     {
         for (int i = 0; i < 6; i++)
         {
-            _increasableWhitePoint[i] = _points[i].canIncreaseChip("white");
-            _increasableBlackPoint[i] = _points[i].canIncreaseChip("black");
+            _increasablePoint["white"].Add(_points[i].canIncreaseChip("white"));
+            _increasablePoint["black"].Add(_points[i].canIncreaseChip("black"));
 
-            _decreasableWhitePoint[i] = _points[i].canDecreaseChip("white");
-            _decreasableBlackPoint[i] = _points[i].canDecreaseChip("black");
+            _decreasablePoint["white"].Add(_points[i].canDecreaseChip("white"));
+            _decreasablePoint["black"].Add(_points[i].canDecreaseChip("black"));
         }
     }
 
@@ -178,31 +194,16 @@ public class Quadrant
         return hasDone;
     }
 
-    public void GetIncreasablePoints(string color, ref bool[] array)
+    public void GetIncreasablePoints(string color, ref List<bool> array)
     {
         this.UpdateEnablePoints();
-        switch (color)
-        {
-            case "white":
-                array = _increasableWhitePoint;
-                break;
-            case "black":
-                array = _increasableBlackPoint;
-                break;
-        }
+        array = _increasablePoint[color];
+       
     }
-    public void GetDecreasablePoints(string color, ref bool[] array)
+    public void GetDecreasablePoints(string color, ref List<bool> array)
     {
         this.UpdateEnablePoints();
-        switch (color)
-        {
-            case "white":
-                array = _decreasableWhitePoint;
-                break;
-            case "black":
-                array = _decreasableBlackPoint;
-                break;
-        }
+        array = _decreasablePoint[color];
     }
     public int CountChips(string color)
     {
@@ -287,8 +288,16 @@ public class Board
         }
         return sum;
     }
+    private void UpdateBar()
+    {
+        string[] colors = { "white", "black" };
+        foreach(string color in colors)
+        {
+            _bar[color] = 15 - this.CountChips(color) - _goal[color];
+        }
+    }
 
-    public bool moveChip(string color, int beforePoint, int afterPoint)
+    public bool MoveChip(string color, int beforePoint, int afterPoint)
     {
         if(!this.DecreaseChip(color, beforePoint))
         {
@@ -297,7 +306,65 @@ public class Board
         }
         this.IncreaseChip(color, afterPoint);
 
+        this.UpdateBar();
+
         return true;
+    }
+    public int GetBarChips(string color)
+    {
+        return _bar[color];
+    }
+    public int GetGoalChips(string color)
+    {
+        return _goal[color];
+    }
+    public void GetIncreasablePoints(string color, ref List<bool> array)
+    {
+        List<bool> tmp = new List<bool>();
+        foreach(Quadrant quad in _quadrants)
+        {
+            quad.GetIncreasablePoints(color, ref tmp);
+            array.AddRange(tmp);
+        }
+    }
+    public void GetDecreasablePoints(string color, ref List<bool> array)
+    {
+        List<bool> tmp = new List<bool>();
+        foreach (Quadrant quad in _quadrants)
+        {
+            quad.GetDecreasablePoints(color, ref tmp);
+            array.AddRange(tmp);
+        }
+    }
+    public bool canGoal(string color)
+    {
+        switch (color)
+        {
+            case "white":
+                if(15 == _quadrants[3].CountChips("white"))
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+                // break;
+            case "black":
+                if (15 == _quadrants[0].CountChips("black"))
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+                // break;
+            default:
+                Debug.LogError($"関数canGoalに不正な値color={color}が渡されました。");
+                return false;
+                // break;
+        }
     }
     public void ShowProperty()
     {
