@@ -14,25 +14,11 @@ public class backgammon : MonoBehaviour
 
     void Start()
     {
-        Quadrant q = new Quadrant();
+        Board b = new Board();
 
-        q.IncreaseChip(color.black.ToString(), 0);
-        q.IncreaseChip(color.white.ToString(), 1);
-        q.IncreaseChip(color.white.ToString(), 2);
-        q.IncreaseChip(color.black.ToString(), 0);
-        q.DecreaseChip(color.black.ToString(), 2);
-        q.DecreaseChip(color.black.ToString(), 5);
-        q.DecreaseChip(color.white.ToString(), 3);
+        b.moveChip(color.white.ToString(), 5, 7);
 
-        bool[] array = new bool[6];
-        q.GetDecreasablePoints(color.black.ToString(), ref array);
-
-        string log = "\n";
-        foreach(bool b in array)
-        {
-            log += $"{b}\n";
-        }
-        Debug.Log(log);
+        b.ShowProperty();
     }
 
     // Update is called once per frame
@@ -49,21 +35,12 @@ public class Point
     private int _chips = 0;
 
     // メンバ関数
-    private void ShowProperty()
-    {
-        string log = "\n";
-        log += $"color : {_color}\n";
-        log += $"chips : {_chips}\n";
-
-        Debug.Log(log);
-    }
-
-    public void IncreaseChip(string color)
+    public bool IncreaseChip(string color)
     {
         if (!this.canIncreaseChip(color))
         {
             Debug.LogWarning(color + "はこのポイントにチップを置けません。");
-            return;
+            return false;
         }
 
         switch(_chips)
@@ -89,16 +66,18 @@ public class Point
                 break;
         }
         // this.ShowProperty();
+        return true;
     }
-    public void DecreaseChip(string color)
+    public bool DecreaseChip(string color)
     {
         if(!this.canDecreaseChip(color))
         {
             Debug.LogWarning(color + "はこのポイントからチップを取れません。");
-            return;
+            return false;
         }
         _chips -= 1;
         // this.ShowProperty();
+        return true;
     }
     public string GetColor()
     {
@@ -125,6 +104,16 @@ public class Point
         }
         return true;
     }
+    public string GetProperty()
+    {
+        string log = "";
+        log += $"color : {_color}";
+        log += $"        chips : {_chips}\n";
+
+        // Debug.Log(log);
+
+        return log;
+    }
 }
 
 public class Quadrant
@@ -135,8 +124,7 @@ public class Quadrant
     private bool[] _increasableBlackPoint = new bool[6];
     private bool[] _decreasableWhitePoint = new bool[6];
     private bool[] _decreasableBlackPoint = new bool[6];
-    private int _whiteChips = 0;
-    private int _blackChips = 0;
+    private Dictionary<string, int> _chipNum = new Dictionary<string, int>();
 
     // コンストラクタ
     public Quadrant()
@@ -145,25 +133,20 @@ public class Quadrant
         {
             _points[i] = new Point();
         }
+
+        _chipNum.Add("white", 0);
+        _chipNum.Add("black", 0);
     }
 
     // メンバ関数
     private void UpdateChips()
     {
-        _whiteChips = 0;
-        _blackChips = 0;
+        _chipNum["white"] = 0;
+        _chipNum["black"] = 0;
 
-        foreach(Point point in _points)
+        foreach (Point point in _points)
         {
-            switch (point.GetColor())
-            {
-                case "white":
-                    _whiteChips += point.GetChipNum();
-                    break;
-                case "black":
-                    _blackChips += point.GetChipNum();
-                    break;
-            }
+            _chipNum[point.GetColor()] += point.GetChipNum();
         }
     }
     private void UpdateEnablePoints()
@@ -178,17 +161,21 @@ public class Quadrant
         }
     }
 
-    public void IncreaseChip(string color, int itr)
+    public bool IncreaseChip(string color, int itr)
     {
-        _points[itr % 6].IncreaseChip(color);
+        bool hasDone;
+        hasDone = _points[itr % 6].IncreaseChip(color);
         this.UpdateChips();
-        this.ShowProperty();
+
+        return hasDone;
     }
-    public void DecreaseChip(string color, int itr)
+    public bool DecreaseChip(string color, int itr)
     {
-        _points[itr % 6].DecreaseChip(color);
+        bool hasDone;
+        hasDone = _points[itr % 6].DecreaseChip(color);
         this.UpdateChips();
-        this.ShowProperty();
+
+        return hasDone;
     }
 
     public void GetIncreasablePoints(string color, ref bool[] array)
@@ -217,19 +204,24 @@ public class Quadrant
                 break;
         }
     }
-
-    public void ShowProperty()
+    public int CountChips(string color)
+    {
+        return _chipNum[color];
+    }
+    public string GetProperty()
     {
         string log = "\n";
 
         foreach (Point point in _points)
         {
-            log += $"color : {point.GetColor()}  chips : {point.GetChipNum()}\n";
+            log += point.GetProperty();
         }
-        log += $"white chips : { _whiteChips}\n";
-        log += $"black chips : { _blackChips}\n";
+        log += $"white chips : { _chipNum["white"]}\n";
+        log += $"black chips : { _chipNum["black"]}\n";
 
-        Debug.Log(log);
+        // Debug.Log(log);
+
+        return log;
     }
 }
 
@@ -237,6 +229,97 @@ public class Board
 {
     // メンバ変数
     private Quadrant[] _quadrants = new Quadrant[4];
-    private int _boreWhitechips;
-    private int _boreBlackchips;
+    private Dictionary<string, int> _bar = new Dictionary<string, int>();
+    private Dictionary<string, int> _goal = new Dictionary<string, int>();
+
+    // コンストラクタ
+    public Board()
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            _quadrants[i] = new Quadrant();
+        }
+
+        _bar.Add("black", 0);
+        _bar.Add("white", 0);
+        _goal.Add("black", 0);
+        _goal.Add("white", 0);
+
+        this.initChips();
+    }
+
+    // メンバ関数
+    private bool IncreaseChip(string color, int itr)
+    {
+        int quadItr = (int)(itr / 6);
+        int pointItr = itr % 6;
+
+        return _quadrants[quadItr].IncreaseChip(color, pointItr);
+    }
+    private bool DecreaseChip(string color, int itr)
+    {
+        int quadItr = (int)(itr / 6);
+        int pointItr = itr % 6;
+
+        return _quadrants[quadItr].DecreaseChip(color, pointItr);
+    }
+    private void initChips()
+    {
+        int[] initialChips = new int[15] {
+            5, 5, 5, 5, 5,
+            7, 7, 7,
+            12, 12, 12, 12, 12,
+            23, 23
+        };
+        foreach(int i in initialChips)
+        {
+            this.IncreaseChip("white", i);
+            this.IncreaseChip("black", 23-i);
+        }
+    }
+    private int CountChips(string color)
+    {
+        int sum = 0;
+
+        foreach(Quadrant quad in _quadrants)
+        {
+            sum += quad.CountChips(color);
+        }
+        return sum;
+    }
+
+    public bool moveChip(string color, int beforePoint, int afterPoint)
+    {
+        if(!this.DecreaseChip(color, beforePoint))
+        {
+            Debug.LogWarning("chipの移動を中止しました。");
+            return false;
+        }
+        this.IncreaseChip(color, afterPoint);
+
+        return true;
+    }
+    public void ShowProperty()
+    {
+        string log = "\n";
+
+        foreach (Quadrant quad in _quadrants)
+        {
+            log += quad.GetProperty();
+        }
+
+        log += $"\ntotal white chips : {this.CountChips("white")}";
+        log += $"\ntotal black chips : {this.CountChips("black")}";
+        log += "\n";
+
+        log += $"\nwhite bar : {_bar["white"]}";
+        log += $"\nblack bar : {_bar["black"]}";
+        log += "\n";
+
+        log += $"\nwhite goal : {_goal["white"]}";
+        log += $"\nblack goal : {_goal["black"]}";
+        log += "\n";
+
+        Debug.Log(log);
+    }
 }
