@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class DiceRolls : MonoBehaviour
+public class RollsHandler : MonoBehaviour
 {
     int _roll1 = 1;
     int _roll2 = 1;
