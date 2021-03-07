@@ -22,6 +22,7 @@ public class BoardHandler : MonoBehaviour
         b.ShowProperty();
 
         b.MoveBarChip(color.white.ToString(), 8);
+        b.MoveChipToGoal(color.white.ToString(), 8);
 
         b.ShowProperty();
 
@@ -303,6 +304,11 @@ public class Board
 
     public bool MoveChip(string color, int beforePoint, int afterPoint)
     {
+        if (23 < afterPoint)
+        {
+            afterPoint = 23;
+        }
+
         if(!this.DecreaseChip(color, beforePoint))
         {
             Debug.LogWarning("chipの移動を中止しました。");
@@ -327,6 +333,17 @@ public class Board
             return false;
         }
         _bar[color]--;
+
+        return true;
+    }
+    public bool MoveChipToGoal(string color, int beforePoint)
+    {
+        if (!this.DecreaseChip(color, beforePoint))
+        {
+            Debug.LogWarning("chipの移動を中止しました。");
+            return false;
+        }
+        _goal[color]++;
 
         return true;
     }
