@@ -21,6 +21,11 @@ public class BoardHandler : MonoBehaviour
 
         b.ShowProperty();
 
+        b.MoveBarChip(color.white.ToString(), 8);
+        b.MoveChipToGoal(color.white.ToString(), 8);
+
+        b.ShowProperty();
+
         Debug.Log(b.canGoal(color.black.ToString()));
 
         List<bool> array = new List<bool>();
@@ -299,14 +304,46 @@ public class Board
 
     public bool MoveChip(string color, int beforePoint, int afterPoint)
     {
+        if (23 < afterPoint)
+        {
+            afterPoint = 23;
+        }
+
         if(!this.DecreaseChip(color, beforePoint))
         {
             Debug.LogWarning("chipの移動を中止しました。");
             return false;
         }
-        this.IncreaseChip(color, afterPoint);
+        if(!this.IncreaseChip(color, afterPoint))
+        {
+            Debug.LogWarning("chipの移動を中止しました。");
+            this.IncreaseChip(color, beforePoint);
+            return false;
+        }
 
         this.UpdateBar();
+
+        return true;
+    }
+    public bool MoveBarChip(string color, int afterPoint)
+    {
+        if (!this.IncreaseChip(color, afterPoint))
+        {
+            Debug.LogWarning("chipの移動を中止しました。");
+            return false;
+        }
+        _bar[color]--;
+
+        return true;
+    }
+    public bool MoveChipToGoal(string color, int beforePoint)
+    {
+        if (!this.DecreaseChip(color, beforePoint))
+        {
+            Debug.LogWarning("chipの移動を中止しました。");
+            return false;
+        }
+        _goal[color]++;
 
         return true;
     }
