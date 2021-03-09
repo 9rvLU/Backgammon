@@ -21,7 +21,7 @@ public class RollsHandler : MonoBehaviour
         
     }
 
-    private bool isDoubling()
+    private bool isDoubles()
     {
         if(_roll1 == _roll2)
         {
@@ -36,7 +36,7 @@ public class RollsHandler : MonoBehaviour
         _rolls.Add(_roll1);
         _rolls.Add(_roll2);
 
-        if (this.isDoubling())
+        if (this.isDoubles())
         {
             _rolls.Add(_roll1);
             _rolls.Add(_roll2);

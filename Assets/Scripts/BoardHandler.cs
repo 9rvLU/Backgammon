@@ -6,45 +6,121 @@ public class BoardHandler : MonoBehaviour
 {
     // Start is called before the first frame update
 
-    enum color
-    {
-        white,
-        black
-    }
+    // メンバ変数
+    private Player _player = new Player();
+    private Board _board = new Board();
 
     void Start()
     {
-        Board b = new Board();
 
-        b.MoveChip(color.white.ToString(), 5, 8);
-        b.MoveChip(color.black.ToString(), 11, 8);
+        _board.MoveChip(_player.Get(), 5, 8);
+        _board.MoveChip(_player.Get(), 11, 8);
 
-        b.ShowProperty();
+        _board.ShowProperty();
 
-        b.MoveBarChip(color.white.ToString(), 8);
-        b.MoveChipToGoal(color.white.ToString(), 8);
+        _board.MoveBarChip(_player.Get(), 8);
+        _board.MoveChipToGoal(_player.Get(), 8);
 
-        b.ShowProperty();
+        _board.ShowProperty();
 
-        Debug.Log(b.canGoal(color.black.ToString()));
+        Debug.Log(_board.canGoal(_player.Get()));
 
         List<bool> array = new List<bool>();
         string log = "\n";
-        b.GetDecreasablePoints(color.black.ToString(), ref array);
+        _board.GetDecreasablePoints(_player.Get(), ref array);
         foreach(bool isX in array)
         {
             log += $"{isX}\n";
         }
         Debug.Log(log);
     }
-
     // Update is called once per frame
     void Update()
     {
         
     }
+
+    // メンバ変数
+    private bool isEnd()
+    {
+        if (15 <= _board.GetGoalChips(_player.Get()))
+        {
+            return true;
+        }
+        return false;
+    }
+    private bool BarChipsExist()
+    {
+        if(0 < _board.GetBarChips(_player.Get()))
+        {
+            return true;
+        }
+        return false;
+    }
+    private bool isEnabeleToIncrease(int point)
+    {
+        List<bool> tmp = new List<bool>();
+        _board.GetIncreasablePoints(_player.Get(), ref tmp);
+
+        return tmp[point];
+    }
+    public bool isEnableToDecrease(int point)
+    {
+        List<bool> tmp = new List<bool>();
+        _board.GetDecreasablePoints(_player.Get(), ref tmp);
+
+        return tmp[point];
+    }
 }
 
+public class Player
+{
+    // メンバ変数
+    private string _color = "white";
+    private string _other = "black";
+
+    // コンストラクタ
+    public Player()
+    {
+
+    }
+
+    // メンバ関数
+    public void Init(string color)
+    {
+        if(_other == color)
+        {
+            this.Toggle();
+        }
+    }
+    public bool Toggle()
+    {
+        if("white" == _color)
+        {
+            _color = "black";
+            _other = "white";
+        }
+        else if ("black" == _color)
+        {
+            _color = "white";
+            _other = "black";
+        }
+        else
+        {
+            Debug.LogError("PlayerクラスToggle関数でwhite, black以外の値がメンバ変数に代入されています。");
+            return false;
+        }
+        return true;
+    }
+    public string Get()
+    {
+        return _color;
+    }
+    public string GetOther()
+    {
+        return _other;
+    }
+}
 public class Point
 {
     // メンバ変数
@@ -327,6 +403,11 @@ public class Board
     }
     public bool MoveBarChip(string color, int afterPoint)
     {
+        if (_bar[color] <= 0)
+        {
+            Debug.LogWarning("BarからChipを取れません。");
+            return false;
+        }
         if (!this.IncreaseChip(color, afterPoint))
         {
             Debug.LogWarning("chipの移動を中止しました。");
