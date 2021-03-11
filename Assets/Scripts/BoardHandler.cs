@@ -35,7 +35,8 @@ public class BoardHandler : MonoBehaviour
         _board.ShowProperty();
 
 
-
+        Debug.Log(string.Join("\n", _board.ChipsCollection["white"]));
+        Debug.Log(string.Join("\n", _board.ChipsCollection["black"]));
     }
     // Update is called once per frame
     void Update()
@@ -125,8 +126,22 @@ public class Board
             ChipsCollection[color].Clear();
 
 
+            // 色にあわせてバーとゴールを代入
+            switch (color)
+            {
+                case "white":
+                    _point[0] = _whiteGoal;
+                    _point[25] = _whiteBar;
+                    break;
+                case "black":
+                    _point[25] = _blackGoal;
+                    _point[0] = _blackBar;
+                    break;
+            }
+
+
             // 値を代入
-            for (int i = 1; i < _point.Length-1; i++)
+            for (int i = 0; i < _point.Length; i++)
             {
                 if (color == _point[i].Color)
                 {
@@ -161,7 +176,7 @@ public class Board
         }
 
 
-        //
+        // ChipCollectionを更新
         this.UpdateChipsCollection();
     }
     public void MoveChip(string color, int beforePoint, int afterPoint)
@@ -180,7 +195,7 @@ public class Board
         }
 
 
-        // 
+        // 条件を確認
         if ((_point[beforePoint].Color != color) || (_point[beforePoint].ChipNum == 0))
         {
             Debug.LogWarning($"{beforePoint}=>{afterPoint} : {color} はこのポイントからチップを取れません。");
@@ -194,10 +209,8 @@ public class Board
 
 
         // コマの操作
-
         // コマを減らす
         _point[beforePoint].ChipNum --;
-
         // コマを増やす
         switch (_point[afterPoint].ChipNum)
         {
@@ -235,36 +248,78 @@ public class Board
         }
 
 
-        //
-        this.UpdateChipsCollection();
-
-
         // バーの数を更新する
         // コマの数は15個なので、ヒットされて数が減った分だけバーを増やす
-        _whiteBar.ChipNum = 15 - ChipsCollection["white"].Sum() - _whiteGoal.ChipNum;
-        _blackBar.ChipNum = 15 - ChipsCollection["black"].Sum() - _blackGoal.ChipNum;
+        int sum = 0;
+        for (int i = 1; i < _point.Length - 1; i++)
+        {
+            if ("white" == _point[i].Color)
+            {
+                sum += _point[i].ChipNum;
+            }
+        }
+        _whiteBar.ChipNum = 15 - sum - _whiteGoal.ChipNum;
+        sum = 0;
+        for (int i = 1; i < _point.Length - 1; i++)
+        {
+            if ("black" == _point[i].Color)
+            {
+                sum += _point[i].ChipNum;
+            }
+        }
+        _blackBar.ChipNum = 15 - sum - _blackGoal.ChipNum;
+
+
+        // ChipsCollectionを更新
+        this.UpdateChipsCollection();
     }
     public void ShowProperty()
     {
         string log = "\n";
 
+
+        // pointの情報を追加
         for (int i = 1; i<_point.Length-1; i++)
         {
             log += $"{i} {_point[i].Color} : {_point[i].ChipNum}\n";
         }
 
-        log += $"\ntotal white chips : {ChipsCollection["white"].Sum()}";
-        log += $"\ntotal black chips : {ChipsCollection["black"].Sum()}";
+
+        // pointの合計
+        int sum = 0;
+        for(int i = 1; i < _point.Length - 1; i++)
+        {
+            if("white" == _point[i].Color)
+            {
+                sum += _point[i].ChipNum;
+            }
+        }
+        log += $"\ntotal white chips : {sum}";
+        sum = 0;
+        for (int i = 1; i < _point.Length - 1; i++)
+        {
+            if ("black" == _point[i].Color)
+            {
+                sum += _point[i].ChipNum;
+            }
+        }
+        log += $"\ntotal black chips : {sum}";
         log += "\n";
 
+
+        // bar
         log += $"\nwhite bar : {_whiteBar.ChipNum}";
         log += $"\nblack bar : {_blackBar.ChipNum}";
         log += "\n";
 
+
+        // goal
         log += $"\nwhite goal : {_whiteGoal.ChipNum}";
         log += $"\nblack goal : {_blackGoal.ChipNum}";
         log += "\n";
 
+
+        // 描画
         Debug.Log(log);
     }
 }
