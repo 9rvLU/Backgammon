@@ -6,33 +6,40 @@ public class BoardHandler : MonoBehaviour
 {
     // Start is called before the first frame update
 
-    // メンバ変数
+    // フィールド
     private Player _player = new Player();
     private Board _board = new Board();
 
+    private int _process;
+    private enum _playerProcess
+    {
+        applyDecreasablePoints = 0,
+        selectChip,
+        applyIncreasablePoints,
+        moveChip
+    }
+
     void Start()
     {
+        _board.MoveChip(_player.Color, 5, 8);
+        _player.Toggle();
+        _board.MoveChip(_player.Color, 11, 8);
 
-        _board.MoveChip(_player.Get(), 5, 8);
-        _board.MoveChip(_player.Get(), 11, 8);
+        _board.ShowProperty();
+        _player.Toggle();
+        Debug.Log(_board.BarExist(_player.Color));
+
+        _board.MoveChip(_player.Color, "bar", 8);
+        _board.MoveChip(_player.Color, 8, "goal");
 
         _board.ShowProperty();
 
-        _board.MoveBarChip(_player.Get(), 8);
-        _board.MoveChipToGoal(_player.Get(), 8);
-
-        _board.ShowProperty();
-
-        Debug.Log(_board.canGoal(_player.Get()));
+        Debug.Log(_board.canGoal(_player.Color));
 
         List<bool> array = new List<bool>();
-        string log = "\n";
-        _board.GetDecreasablePoints(_player.Get(), ref array);
-        foreach(bool isX in array)
-        {
-            log += $"{isX}\n";
-        }
-        Debug.Log(log);
+        _board.GetDecreasablePoints(_player.Color, ref array);
+        Debug.Log(string.Join(", ", array));
+
     }
     // Update is called once per frame
     void Update()
@@ -40,70 +47,74 @@ public class BoardHandler : MonoBehaviour
         
     }
 
-    // メンバ変数
+    // メソッド
+    private void InitializeBoard()
+    {
+        _board = new Board();
+    }
     private bool isEnd()
     {
-        if (15 <= _board.GetGoalChips(_player.Get()))
+        if (15 <= _board.GetGoalChips(_player.Color))
         {
             return true;
         }
         return false;
     }
-    private bool BarChipsExist()
+    private void SelectChip()
     {
-        if(0 < _board.GetBarChips(_player.Get()))
-        {
-            return true;
-        }
-        return false;
+        var tmp = new List<bool>();
+
+        this.GetDecreasablePoints(ref tmp);
     }
-    private bool isEnabeleToIncrease(int point)
+
+    public void GetChips(string color, ref List<int> list)
+    {
+        var tmp = new List<int>();
+        _board.GetChips(color, ref tmp);
+
+        list = new List<int>(tmp);
+    }
+    public void GetIncreasablePoints(ref List<bool> blist)
     {
         List<bool> tmp = new List<bool>();
-        _board.GetIncreasablePoints(_player.Get(), ref tmp);
+        _board.GetIncreasablePoints(_player.Color, ref tmp);
 
-        return tmp[point];
+        blist = new List<bool>(tmp);
     }
-    public bool isEnableToDecrease(int point)
+    public void GetDecreasablePoints(ref List<bool> blist)
     {
         List<bool> tmp = new List<bool>();
-        _board.GetDecreasablePoints(_player.Get(), ref tmp);
+        _board.GetDecreasablePoints(_player.Color, ref tmp);
 
-        return tmp[point];
+        blist = new List<bool>(tmp);
     }
 }
 
 public class Player
 {
-    // メンバ変数
-    private string _color = "white";
-    private string _other = "black";
+    // プロパティ
+    public string Color { get; private set; } = "white";
+    public string Other { get; private set; } = "black";
 
-    // コンストラクタ
-    public Player()
-    {
-
-    }
-
-    // メンバ関数
+    // メソッド
     public void Init(string color)
     {
-        if(_other == color)
+        if(Other == color)
         {
             this.Toggle();
         }
     }
     public bool Toggle()
     {
-        if("white" == _color)
+        if("white" == Color)
         {
-            _color = "black";
-            _other = "white";
+            Color = "black";
+            Other = "white";
         }
-        else if ("black" == _color)
+        else if ("black" == Color)
         {
-            _color = "white";
-            _other = "black";
+            Color = "white";
+            Other = "black";
         }
         else
         {
@@ -111,14 +122,6 @@ public class Player
             return false;
         }
         return true;
-    }
-    public string Get()
-    {
-        return _color;
-    }
-    public string GetOther()
-    {
-        return _other;
     }
 }
 public class Point
@@ -275,6 +278,21 @@ public class Quadrant
         return hasDone;
     }
 
+    public void GetChips(string color, ref List<int> array)
+    {
+        foreach(var point in _points)
+        {
+            if (color == point.GetColor())
+            {
+                array.Add(point.GetChipNum());
+            }
+            else
+            {
+                array.Add(0);
+            }
+        }
+        // Debug.Log(string.Join(", ", array));
+    }
     public void GetIncreasablePoints(string color, ref List<bool> array)
     {
         this.UpdateEnablePoints();
@@ -380,11 +398,6 @@ public class Board
 
     public bool MoveChip(string color, int beforePoint, int afterPoint)
     {
-        if (23 < afterPoint)
-        {
-            afterPoint = 23;
-        }
-
         if(!this.DecreaseChip(color, beforePoint))
         {
             Debug.LogWarning("chipの移動を中止しました。");
@@ -401,11 +414,11 @@ public class Board
 
         return true;
     }
-    public bool MoveBarChip(string color, int afterPoint)
+    public bool MoveChip(string color, string bar, int afterPoint)
     {
         if (_bar[color] <= 0)
         {
-            Debug.LogWarning("BarからChipを取れません。");
+            Debug.LogWarning("BarにChipがないため、動かせませんでした。");
             return false;
         }
         if (!this.IncreaseChip(color, afterPoint))
@@ -417,7 +430,7 @@ public class Board
 
         return true;
     }
-    public bool MoveChipToGoal(string color, int beforePoint)
+    public bool MoveChip(string color, int beforePoint, string goal)
     {
         if (!this.DecreaseChip(color, beforePoint))
         {
@@ -435,6 +448,18 @@ public class Board
     public int GetGoalChips(string color)
     {
         return _goal[color];
+    }
+
+    public void GetChips(string color, ref List<int> array)
+    {
+        var tmp = new List<int>();
+
+        foreach (var quad in _quadrants)
+        {
+            quad.GetChips(color, ref tmp);
+            array.AddRange(tmp);
+            tmp.Clear();
+        }
     }
     public void GetIncreasablePoints(string color, ref List<bool> array)
     {
@@ -483,6 +508,14 @@ public class Board
                 return false;
                 // break;
         }
+    }
+    public bool BarExist(string color)
+    {
+        if (0 < _bar[color])
+        {
+            return true;
+        }
+        return false;
     }
     public void ShowProperty()
     {
