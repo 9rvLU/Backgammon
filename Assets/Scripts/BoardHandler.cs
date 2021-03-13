@@ -21,31 +21,18 @@ namespace Backgammon
             var white = "white";
             var black = "black";
 
-            Debug.Log(string.Join(",", this.GetBeforePointCollection(white)));
-            Debug.Log(string.Join(",", this.GetBeforePointCollection(black)));
 
-
-            _board.ChipsCollection["white"][0] = 100;
-            Debug.Log(string.Join("\n", _board.ChipsCollection["white"]));
-
-
-            _board.MoveChip(white, 6, 9);
-            _board.MoveChip(black, 12, 9); // hit!
+            this.MoveChip(white, 24, 4);
+            this.MoveChip(black, 17, 3); // hit!
 
             _board.ShowProperty();
             Debug.Log(string.Join(",", this.GetBeforePointCollection(white)));
             Debug.Log(string.Join(",", this.GetBeforePointCollection(black)));
 
-            _board.MoveChip(white, 25, 8); // enter
-            _board.MoveChip(white, 8, 0); // bear off
+
+            this.MoveChip(white, 25, 2); // enter
 
             _board.ShowProperty();
-
-
-            Debug.Log(string.Join("\n", _board.ChipsCollection["white"]));
-            //Debug.Log(string.Join("\n", BeforePointCollection["white"]));
-
-
             Debug.Log(string.Join(",", this.GetBeforePointCollection(white)));
             Debug.Log(string.Join(",", this.GetBeforePointCollection(black)));
         }
@@ -57,7 +44,7 @@ namespace Backgammon
 
 
         // メソッド
-        public int GetAfterPoint(string color, int beforePoint, int dice)
+        public bool MoveChip(string color, int beforePoint, int dice)
         {
             // コマが置けるマスのリストを作成
             var increasablePoints = new List<bool>();
@@ -88,7 +75,7 @@ namespace Backgammon
                     break;
                 default:
                     Debug.LogError($"BoardHandler: GetAfterPoint に不正な引数color = {color}が代入されました。");
-                    return beforePoint;
+                    return false;
             }
 
 
@@ -98,7 +85,8 @@ namespace Backgammon
             {
                 if (increasablePoints[afterPoint])
                 {
-                    return afterPoint;
+                    _board.MoveChip(color, beforePoint, afterPoint);
+                    return true;
                 }
             }
             // afterPoint == 0 or 25 のとき
@@ -107,7 +95,8 @@ namespace Backgammon
             {
                 if (allChipsAreInHome)
                 {
-                    return afterPoint;
+                    _board.MoveChip(color, beforePoint, afterPoint);
+                    return true;
                 }
             }
             // afterPoint < 0 or 25 < afterPoint のとき
@@ -117,13 +106,14 @@ namespace Backgammon
             {
                 if (allChipsAreInHome && distanceToGoal <= dice)
                 {
-                    return goalPoint;
+                    _board.MoveChip(color, beforePoint, goalPoint);
+                    return true;
                 }
             }
 
 
             // 全部に当てはまらないとき、もとのマスIDを返す
-            return beforePoint;
+            return false;
         }
         public IEnumerable<int> GetBeforePointCollection(string color)
         {
@@ -165,14 +155,10 @@ namespace Backgammon
                 }
             }
         }
-        public void LoadHand()
-        {
+        //public void LoadRecord()
+        //{
 
-        }
-        public void LoadRecord()
-        {
-
-        }
+        //}
     }
 
 
