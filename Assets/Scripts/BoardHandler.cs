@@ -50,6 +50,7 @@ namespace Backgammon
         // メソッド
         public int GetAfterPoint(string color, int beforePoint, int dice)
         {
+            // コマが置けるマスのリストを作成
             var increasablePoints = new List<bool>();
             foreach (var item in _board.ChipsCollection[color])
             {
@@ -57,27 +58,33 @@ namespace Backgammon
             }
 
 
+            // 色ごとに違う処理をする値を変数にラップ
             var afterPoint = beforePoint;
             var allChipsAreInHome = false;
             var distanceToGoal = 25;
-            var goalIndex = 0;
+            var goalPoint = 0;
             switch (color)
             {
                 case "white":
                     afterPoint = beforePoint - dice;
                     allChipsAreInHome = 15 == _board.CountChips(0, 6);
-                    goalIndex = 0;
+                    goalPoint = 0;
                     distanceToGoal = increasablePoints.FindIndex(value => true == value);
                     break;
                 case "black":
                     afterPoint = beforePoint + dice;
                     allChipsAreInHome = 15 == _board.CountChips(19, 25);
-                    goalIndex = 25;
-                    distanceToGoal = goalIndex - increasablePoints.FindLastIndex(value => true == value);
+                    goalPoint = 25;
+                    distanceToGoal = goalPoint - increasablePoints.FindLastIndex(value => true == value);
                     break;
+                default:
+                    Debug.LogError($"BoardHandler: GetAfterPoint に不正な引数color = {color}が代入されました。");
+                    return beforePoint;
             }
 
 
+            // 0 <= afterPoint <= 25 のとき
+            // 移動先のマスにコマが置ける状態ならば移動先のマスIDを返す
             if (0 < afterPoint && afterPoint < 25)
             {
                 if (increasablePoints[afterPoint])
@@ -85,6 +92,8 @@ namespace Backgammon
                     return afterPoint;
                 }
             }
+            // afterPoint == 0 or 25 のとき
+            // ゴール（bear off）が可能（すべてのコマが自陣にある）ならばゴールマスを返す
             else if (0 == afterPoint || 25 == afterPoint)
             {
                 if (allChipsAreInHome)
@@ -92,13 +101,19 @@ namespace Backgammon
                     return afterPoint;
                 }
             }
+            // afterPoint < 0 or 25 < afterPoint のとき
+            // ゴールとゴールからもっとも遠いコマがダイス目以下しか離れていない、かつ
+            // すべてのコマが自陣にあるとき、ゴールマスを返す
             else
             {
                 if (allChipsAreInHome && distanceToGoal <= dice)
                 {
-                    return goalIndex;
+                    return goalPoint;
                 }
             }
+
+
+            // 全部に当てはまらないとき、もとのマスIDを返す
             return beforePoint;
         }
         public void LoadHand()
