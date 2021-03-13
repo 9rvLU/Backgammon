@@ -1,429 +1,415 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
-public class BoardHandler : MonoBehaviour
+
+namespace Backgammon
 {
-    // Start is called before the first frame update
-
-    enum color
+    public class BoardHandler : MonoBehaviour
     {
-        white,
-        black
-    }
+        // フィールド
+        private Board _board = new Board();
 
-    void Start()
-    {
-        Board b = new Board();
 
-        b.MoveChip(color.white.ToString(), 5, 8);
-        b.MoveChip(color.black.ToString(), 11, 8);
+        // プロパティ
 
-        b.ShowProperty();
 
-        b.MoveBarChip(color.white.ToString(), 8);
-        b.MoveChipToGoal(color.white.ToString(), 8);
-
-        b.ShowProperty();
-
-        Debug.Log(b.canGoal(color.black.ToString()));
-
-        List<bool> array = new List<bool>();
-        string log = "\n";
-        b.GetDecreasablePoints(color.black.ToString(), ref array);
-        foreach(bool isX in array)
+        // Start is called before the first frame update
+        void Start()
         {
-            log += $"{isX}\n";
+            var white = "white";
+            var black = "black";
+
+
+            this.MoveChip(white, 24, 4);
+            this.MoveChip(black, 17, 3); // hit!
+
+            _board.ShowProperty();
+            Debug.Log(string.Join(",", this.GetBeforePointCollection(white)));
+            Debug.Log(string.Join(",", this.GetBeforePointCollection(black)));
+
+
+            this.MoveChip(white, 25, 2); // enter
+
+            _board.ShowProperty();
+            Debug.Log(string.Join(",", this.GetBeforePointCollection(white)));
+            Debug.Log(string.Join(",", this.GetBeforePointCollection(black)));
         }
-        Debug.Log(log);
+        // Update is called once per frame
+        void Update()
+        {
+
+        }
+
+
+        // メソッド
+        public bool MoveChip(string color, int beforePoint, int dice)
+        {
+            // コマが置けるマスのリストを作成
+            var increasablePoints = new List<bool>();
+            foreach (var item in _board.ChipsCollection[color])
+            {
+                increasablePoints.Add(2 > item);
+            }
+
+
+            // 色ごとに違う処理をする値を変数にラップ
+            var afterPoint = beforePoint;
+            var allChipsAreInHome = false;
+            var distanceToGoal = 25;
+            var goalPoint = 0;
+            switch (color)
+            {
+                case "white":
+                    afterPoint = beforePoint - dice;
+                    allChipsAreInHome = 15 == _board.CountChips(0, 6);
+                    goalPoint = 0;
+                    distanceToGoal = increasablePoints.FindIndex(value => true == value);
+                    break;
+                case "black":
+                    afterPoint = beforePoint + dice;
+                    allChipsAreInHome = 15 == _board.CountChips(19, 25);
+                    goalPoint = 25;
+                    distanceToGoal = goalPoint - increasablePoints.FindLastIndex(value => true == value);
+                    break;
+                default:
+                    Debug.LogError($"BoardHandler: GetAfterPoint に不正な引数color = {color}が代入されました。");
+                    return false;
+            }
+
+
+            // 0 <= afterPoint <= 25 のとき
+            // 移動先のマスにコマが置ける状態ならば移動先のマスIDを返す
+            if (0 < afterPoint && afterPoint < 25)
+            {
+                if (increasablePoints[afterPoint])
+                {
+                    _board.MoveChip(color, beforePoint, afterPoint);
+                    return true;
+                }
+            }
+            // afterPoint == 0 or 25 のとき
+            // ゴール（bear off）が可能（すべてのコマが自陣にある）ならばゴールマスを返す
+            else if (0 == afterPoint || 25 == afterPoint)
+            {
+                if (allChipsAreInHome)
+                {
+                    _board.MoveChip(color, beforePoint, afterPoint);
+                    return true;
+                }
+            }
+            // afterPoint < 0 or 25 < afterPoint のとき
+            // ゴールとゴールからもっとも遠いコマがダイス目以下しか離れていない、かつ
+            // すべてのコマが自陣にあるとき、ゴールマスを返す
+            else
+            {
+                if (allChipsAreInHome && distanceToGoal <= dice)
+                {
+                    _board.MoveChip(color, beforePoint, goalPoint);
+                    return true;
+                }
+            }
+
+
+            // 全部に当てはまらないとき、もとのマスIDを返す
+            return false;
+        }
+        public IEnumerable<int> GetBeforePointCollection(string color)
+        {
+            // バーにコマがないことをチェック
+            var BarPointIndex = 0;
+            var GoalPointIndex = 0;
+            var BarHasChip = false;
+            switch (color)
+            {
+                case "white":
+                    BarPointIndex = 25;
+                    GoalPointIndex = 0;
+                    break;
+                case "black":
+                    BarPointIndex = 0;
+                    GoalPointIndex = 25;
+                    break;
+            }
+            if (0 < _board.ChipsCollection[color][BarPointIndex])
+            {
+                BarHasChip = true;
+            }
+
+
+            // バーにコマがあるとき、バー以外のすべてのマスが選択不可能
+            if (BarHasChip)
+            {
+                yield return BarPointIndex;
+            }
+            // バーにコマがないとき、ゴール以外のコマを1つ以上持っているマスを返す
+            else
+            {
+                for (var i = 0; i < _board.ChipsCollection[color].Count(); i++)
+                {
+                    if (GoalPointIndex != i && 0 < _board.ChipsCollection[color][i])
+                    {
+                        yield return i;
+                    }
+                }
+            }
+        }
+        //public void LoadRecord()
+        //{
+
+        //}
     }
 
-    // Update is called once per frame
-    void Update()
+
+    public class Board
     {
+        // フィールド
+        private (string Color, int ChipNum)[] _point = new (string, int)[26];
+
+        private Dictionary<string, (string Color, int ChipNum)> _bar = new Dictionary<string, (string, int)>();
+        private Dictionary<string, (string Color, int ChipNum)> _goal = new Dictionary<string, (string, int)>();
         
-    }
-}
 
-public class Point
-{
-    // メンバ変数
-    private string _color = "black";
-    private int _chips = 0;
+        // プロパティ
+        public Dictionary<string, List<int>> ChipsCollection { get; private set; } = new Dictionary<string, List<int>>();
 
-    // メンバ関数
-    public bool IncreaseChip(string color)
-    {
-        if (!this.canIncreaseChip(color))
+
+        // コンストラクタ
+        public Board()
         {
-            Debug.LogWarning(color + "はこのポイントにチップを置けません。");
-            return false;
+            ChipsCollection.Add("white", new List<int>());
+            ChipsCollection.Add("black", new List<int>());
+
+
+            _bar.Add("white", ("white", 0));
+            _bar.Add("black", ("black", 0));
+
+
+            _goal.Add("white", ("white", 0));
+            _goal.Add("black", ("black", 0));
+
+
+            this.Initialize();
         }
 
-        switch(_chips)
-        {
-            case 0:
-                _color = color;
-                _chips += 1;
-                break;
 
-            case 1:
-                if(_color == color)
+        // メソッド
+        private void UpdateChipsCollection()
+        {
+            string[] colors = { "white", "black" };
+            foreach (var color in colors)
+            {
+                // ChipCollectionを初期化
+                ChipsCollection[color].Clear();
+
+
+                // 色にあわせてバーとゴールを代入
+                switch (color)
                 {
-                    _chips += 1;
+                    case "white":
+                        _point[0] = _goal["white"];
+                        _point[25] = _bar["white"];
+                        break;
+                    case "black":
+                        _point[25] = _goal["black"];
+                        _point[0] = _bar["black"];
+                        break;
                 }
-                else
+
+
+                // 値を代入
+                for (int i = 0; i < _point.Length; i++)
                 {
-                    _color = color;
+                    if (color == _point[i].Color)
+                    {
+                        ChipsCollection[color].Add(_point[i].ChipNum);
+                    }
+                    else
+                    {
+                        ChipsCollection[color].Add(0);
+                    }
                 }
-                break;
-
-            default:
-                _chips += 1;
-                break;
+            }
         }
-        // this.ShowProperty();
-        return true;
-    }
-    public bool DecreaseChip(string color)
-    {
-        if(!this.canDecreaseChip(color))
+        public void Initialize()
         {
-            Debug.LogWarning(color + "はこのポイントからチップを取れません。");
-            return false;
-        }
-        _chips -= 1;
-        // this.ShowProperty();
-        return true;
-    }
-    public string GetColor()
-    {
-        return _color;
-    }
-    public int GetChipNum()
-    {
-        return _chips;
-    }
+            // すべてのマスについてコマの数を0にする
+            for (int i = 0; i < _point.Length; i++)
+            {
+                _point[i] = ("white", 0);
+            }
 
-    public bool canIncreaseChip(string color)
-    {
-        if((_chips > 1) && (_color != color))
-        {
-            return false;
-        }
-        return true;
-    }
-    public bool canDecreaseChip(string color)
-    {
-        if((_chips == 0) || (_color != color))
-        {
-            return false;
-        }
-        return true;
-    }
-    public string GetProperty()
-    {
-        string log = "";
-        log += $"color : {_color}";
-        log += $"        chips : {_chips}\n";
 
-        // Debug.Log(log);
-
-        return log;
-    }
-}
-
-public class Quadrant
-{
-    // メンバ変数
-    private Point[] _points = new Point[6];
-    private Dictionary<string, List<bool>> _increasablePoint = new Dictionary<string, List<bool>>();
-    private Dictionary<string, List<bool>> _decreasablePoint = new Dictionary<string, List<bool>>();
-    private Dictionary<string, int> _chipNum = new Dictionary<string, int>();
-
-    // コンストラクタ
-    public Quadrant()
-    {
-        for(int i = 0; i < 6; i++)
-        {
-            _points[i] = new Point();
-        }
-
-        _increasablePoint.Add("white", new List<bool>());
-        _increasablePoint.Add("black", new List<bool>());
-
-        _decreasablePoint.Add("white", new List<bool>());
-        _decreasablePoint.Add("black", new List<bool>());
-
-        _chipNum.Add("white", 0);
-        _chipNum.Add("black", 0);
-    }
-
-    // メンバ関数
-    private void UpdateChips()
-    {
-        _chipNum["white"] = 0;
-        _chipNum["black"] = 0;
-
-        foreach (Point point in _points)
-        {
-            _chipNum[point.GetColor()] += point.GetChipNum();
-        }
-    }
-    private void UpdateEnablePoints()
-    {
-        for (int i = 0; i < 6; i++)
-        {
-            _increasablePoint["white"].Add(_points[i].canIncreaseChip("white"));
-            _increasablePoint["black"].Add(_points[i].canIncreaseChip("black"));
-
-            _decreasablePoint["white"].Add(_points[i].canDecreaseChip("white"));
-            _decreasablePoint["black"].Add(_points[i].canDecreaseChip("black"));
-        }
-    }
-
-    public bool IncreaseChip(string color, int itr)
-    {
-        bool hasDone;
-        hasDone = _points[itr % 6].IncreaseChip(color);
-        this.UpdateChips();
-
-        return hasDone;
-    }
-    public bool DecreaseChip(string color, int itr)
-    {
-        bool hasDone;
-        hasDone = _points[itr % 6].DecreaseChip(color);
-        this.UpdateChips();
-
-        return hasDone;
-    }
-
-    public void GetIncreasablePoints(string color, ref List<bool> array)
-    {
-        this.UpdateEnablePoints();
-        array = _increasablePoint[color];
-       
-    }
-    public void GetDecreasablePoints(string color, ref List<bool> array)
-    {
-        this.UpdateEnablePoints();
-        array = _decreasablePoint[color];
-    }
-    public int CountChips(string color)
-    {
-        return _chipNum[color];
-    }
-    public string GetProperty()
-    {
-        string log = "\n";
-
-        foreach (Point point in _points)
-        {
-            log += point.GetProperty();
-        }
-        log += $"white chips : { _chipNum["white"]}\n";
-        log += $"black chips : { _chipNum["black"]}\n";
-
-        // Debug.Log(log);
-
-        return log;
-    }
-}
-
-public class Board
-{
-    // メンバ変数
-    private Quadrant[] _quadrants = new Quadrant[4];
-    private Dictionary<string, int> _bar = new Dictionary<string, int>();
-    private Dictionary<string, int> _goal = new Dictionary<string, int>();
-
-    // コンストラクタ
-    public Board()
-    {
-        for (int i = 0; i < 4; i++)
-        {
-            _quadrants[i] = new Quadrant();
-        }
-
-        _bar.Add("black", 0);
-        _bar.Add("white", 0);
-        _goal.Add("black", 0);
-        _goal.Add("white", 0);
-
-        this.initChips();
-    }
-
-    // メンバ関数
-    private bool IncreaseChip(string color, int itr)
-    {
-        int quadItr = (int)(itr / 6);
-        int pointItr = itr % 6;
-
-        return _quadrants[quadItr].IncreaseChip(color, pointItr);
-    }
-    private bool DecreaseChip(string color, int itr)
-    {
-        int quadItr = (int)(itr / 6);
-        int pointItr = itr % 6;
-
-        return _quadrants[quadItr].DecreaseChip(color, pointItr);
-    }
-    private void initChips()
-    {
-        int[] initialChips = new int[15] {
-            5, 5, 5, 5, 5,
-            7, 7, 7,
-            12, 12, 12, 12, 12,
-            23, 23
+            // コマの初期配置を定義
+            int[] initialChips = new int[15] {
+            6, 6, 6, 6,6,
+            8, 8, 8,
+            13, 13, 13, 13, 13,
+            24, 24
         };
-        foreach(int i in initialChips)
-        {
-            this.IncreaseChip("white", i);
-            this.IncreaseChip("black", 23-i);
-        }
-    }
-    private int CountChips(string color)
-    {
-        int sum = 0;
 
-        foreach(Quadrant quad in _quadrants)
-        {
-            sum += quad.CountChips(color);
-        }
-        return sum;
-    }
-    private void UpdateBar()
-    {
-        string[] colors = { "white", "black" };
-        foreach(string color in colors)
-        {
-            _bar[color] = 15 - this.CountChips(color) - _goal[color];
-        }
-    }
 
-    public bool MoveChip(string color, int beforePoint, int afterPoint)
-    {
-        if (23 < afterPoint)
-        {
-            afterPoint = 23;
-        }
+            // 初期配置に従ってコマを増やす
+            foreach (int i in initialChips)
+            {
+                _point[i].Color = "white";
+                _point[i].ChipNum += 1;
 
-        if(!this.DecreaseChip(color, beforePoint))
-        {
-            Debug.LogWarning("chipの移動を中止しました。");
-            return false;
-        }
-        if(!this.IncreaseChip(color, afterPoint))
-        {
-            Debug.LogWarning("chipの移動を中止しました。");
-            this.IncreaseChip(color, beforePoint);
-            return false;
-        }
+                _point[25 - i].Color = "black";
+                _point[25 - i].ChipNum += 1;
+            }
 
-        this.UpdateBar();
 
-        return true;
-    }
-    public bool MoveBarChip(string color, int afterPoint)
-    {
-        if (!this.IncreaseChip(color, afterPoint))
-        {
-            Debug.LogWarning("chipの移動を中止しました。");
-            return false;
+            // ChipCollectionを更新
+            this.UpdateChipsCollection();
         }
-        _bar[color]--;
+        public int CountChips(int beforePoint, int afterPoint)
+        {
+            var sum = 0;
+            for (var i = beforePoint; i < afterPoint + 1; i++)
+            {
+                sum += _point[i].ChipNum;
+            }
 
-        return true;
-    }
-    public bool MoveChipToGoal(string color, int beforePoint)
-    {
-        if (!this.DecreaseChip(color, beforePoint))
-        {
-            Debug.LogWarning("chipの移動を中止しました。");
-            return false;
+            return sum;
         }
-        _goal[color]++;
+        public void MoveChip(string color, int beforePoint, int afterPoint)
+        {
+            // 色にあわせてバーとゴールを代入
+            switch (color)
+            {
+                case "white":
+                    _point[0] = _goal["white"];
+                    _point[25] = _bar["white"];
+                    break;
+                case "black":
+                    _point[25] = _goal["black"];
+                    _point[0] = _bar["black"];
+                    break;
+            }
 
-        return true;
-    }
-    public int GetBarChips(string color)
-    {
-        return _bar[color];
-    }
-    public int GetGoalChips(string color)
-    {
-        return _goal[color];
-    }
-    public void GetIncreasablePoints(string color, ref List<bool> array)
-    {
-        List<bool> tmp = new List<bool>();
-        foreach(Quadrant quad in _quadrants)
-        {
-            quad.GetIncreasablePoints(color, ref tmp);
-            array.AddRange(tmp);
-        }
-    }
-    public void GetDecreasablePoints(string color, ref List<bool> array)
-    {
-        List<bool> tmp = new List<bool>();
-        foreach (Quadrant quad in _quadrants)
-        {
-            quad.GetDecreasablePoints(color, ref tmp);
-            array.AddRange(tmp);
-        }
-    }
-    public bool canGoal(string color)
-    {
-        switch (color)
-        {
-            case "white":
-                if(15 == _quadrants[3].CountChips("white"))
+
+            // 条件を確認
+            if ((_point[beforePoint].Color != color) || (_point[beforePoint].ChipNum == 0))
+            {
+                Debug.LogWarning($"{beforePoint}=>{afterPoint} : {color} はこのポイントからチップを取れません。");
+                return;
+            }
+            if ((color != _point[afterPoint].Color) && (_point[afterPoint].ChipNum > 1))
+            {
+                Debug.LogWarning($"{beforePoint}=>{afterPoint} : {color}はこのポイントにチップを置けません。");
+                return;
+            }
+
+
+            // コマの操作
+            // コマを減らす
+            _point[beforePoint].ChipNum--;
+            // コマを増やす
+            switch (_point[afterPoint].ChipNum)
+            {
+                case 0:
+                    _point[afterPoint].Color = color;
+                    _point[afterPoint].ChipNum++;
+                    break;
+                case 1:
+                    if (color == _point[afterPoint].Color)
+                    {
+                        _point[afterPoint].ChipNum++;
+                    }
+                    else
+                    {
+                        _point[afterPoint].Color = color;
+                    }
+                    break;
+                default:
+                    _point[afterPoint].ChipNum++;
+                    break;
+            }
+
+
+            // バーとゴールの情報を戻す
+            switch (color)
+            {
+                case "white":
+                    _goal["white"] = _point[0];
+                    _bar["white"] = _point[25];
+                    break;
+                case "black":
+                    _goal["black"] = _point[25];
+                    _bar["black"] = _point[0];
+                    break;
+            }
+
+
+            // バーの数を更新する
+            // コマの数は15個なので、ヒットされて数が減った分だけバーを増やす
+            string[] colors = { "white", "black" };
+            foreach(var item in colors){
+                int sum = 0;
+                for (int i = 1; i < _point.Length - 1; i++)
                 {
-                    return true;
+                    if (item == _point[i].Color)
+                    {
+                        sum += _point[i].ChipNum;
+                    }
                 }
-                else
-                {
-                    return false;
-                }
-                // break;
-            case "black":
-                if (15 == _quadrants[0].CountChips("black"))
-                {
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
-                // break;
-            default:
-                Debug.LogError($"関数canGoalに不正な値color={color}が渡されました。");
-                return false;
-                // break;
-        }
-    }
-    public void ShowProperty()
-    {
-        string log = "\n";
+                _bar[item] = (item, 15 - sum - _goal[item].ChipNum);
+            }
+            
 
-        foreach (Quadrant quad in _quadrants)
+            // ChipsCollectionを更新
+            this.UpdateChipsCollection();
+        }
+        public void ShowProperty()
         {
-            log += quad.GetProperty();
+            string log = "\n";
+
+
+            // pointの情報を追加
+            for (int i = 1; i < _point.Length - 1; i++)
+            {
+                log += $"{i} {_point[i].Color} : {_point[i].ChipNum}\n";
+            }
+
+
+            // pointの合計
+            int sum = 0;
+            for (int i = 1; i < _point.Length - 1; i++)
+            {
+                if ("white" == _point[i].Color)
+                {
+                    sum += _point[i].ChipNum;
+                }
+            }
+            log += $"\ntotal white chips : {sum}";
+            sum = 0;
+            for (int i = 1; i < _point.Length - 1; i++)
+            {
+                if ("black" == _point[i].Color)
+                {
+                    sum += _point[i].ChipNum;
+                }
+            }
+            log += $"\ntotal black chips : {sum}";
+            log += "\n";
+
+
+            // bar
+            log += $"\nwhite bar : {_bar["white"].ChipNum}";
+            log += $"\nblack bar : {_bar["black"].ChipNum}";
+            log += "\n";
+
+
+            // goal
+            log += $"\nwhite goal : {_goal["white"].ChipNum}";
+            log += $"\nblack goal : {_goal["black"].ChipNum}";
+            log += "\n";
+
+
+            // 描画
+            Debug.Log(log);
         }
-
-        log += $"\ntotal white chips : {this.CountChips("white")}";
-        log += $"\ntotal black chips : {this.CountChips("black")}";
-        log += "\n";
-
-        log += $"\nwhite bar : {_bar["white"]}";
-        log += $"\nblack bar : {_bar["black"]}";
-        log += "\n";
-
-        log += $"\nwhite goal : {_goal["white"]}";
-        log += $"\nblack goal : {_goal["black"]}";
-        log += "\n";
-
-        Debug.Log(log);
     }
 }
