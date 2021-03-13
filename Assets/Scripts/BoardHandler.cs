@@ -18,10 +18,12 @@ namespace Backgammon
         // Start is called before the first frame update
         void Start()
         {
-
-
             var white = "white";
             var black = "black";
+
+            Debug.Log(string.Join(",", this.GetBeforePointCollection(white)));
+            Debug.Log(string.Join(",", this.GetBeforePointCollection(black)));
+
 
             _board.ChipsCollection["white"][0] = 100;
             Debug.Log(string.Join("\n", _board.ChipsCollection["white"]));
@@ -31,6 +33,8 @@ namespace Backgammon
             _board.MoveChip(black, 12, 9); // hit!
 
             _board.ShowProperty();
+            Debug.Log(string.Join(",", this.GetBeforePointCollection(white)));
+            Debug.Log(string.Join(",", this.GetBeforePointCollection(black)));
 
             _board.MoveChip(white, 25, 8); // enter
             _board.MoveChip(white, 8, 0); // bear off
@@ -40,12 +44,17 @@ namespace Backgammon
 
             Debug.Log(string.Join("\n", _board.ChipsCollection["white"]));
             //Debug.Log(string.Join("\n", BeforePointCollection["white"]));
+
+
+            Debug.Log(string.Join(",", this.GetBeforePointCollection(white)));
+            Debug.Log(string.Join(",", this.GetBeforePointCollection(black)));
         }
         // Update is called once per frame
         void Update()
         {
 
         }
+
 
         // メソッド
         public int GetAfterPoint(string color, int beforePoint, int dice)
@@ -116,6 +125,46 @@ namespace Backgammon
             // 全部に当てはまらないとき、もとのマスIDを返す
             return beforePoint;
         }
+        public IEnumerable<int> GetBeforePointCollection(string color)
+        {
+            // バーにコマがないことをチェック
+            var BarPointIndex = 0;
+            var GoalPointIndex = 0;
+            var BarHasChip = false;
+            switch (color)
+            {
+                case "white":
+                    BarPointIndex = 25;
+                    GoalPointIndex = 0;
+                    break;
+                case "black":
+                    BarPointIndex = 0;
+                    GoalPointIndex = 25;
+                    break;
+            }
+            if (0 < _board.ChipsCollection[color][BarPointIndex])
+            {
+                BarHasChip = true;
+            }
+
+
+            // バーにコマがあるとき、バー以外のすべてのマスが選択不可能
+            if (BarHasChip)
+            {
+                yield return BarPointIndex;
+            }
+            // バーにコマがないとき、ゴール以外のコマを1つ以上持っているマスを返す
+            else
+            {
+                for (var i = 0; i < _board.ChipsCollection[color].Count(); i++)
+                {
+                    if (GoalPointIndex != i && 0 < _board.ChipsCollection[color][i])
+                    {
+                        yield return i;
+                    }
+                }
+            }
+        }
         public void LoadHand()
         {
 
@@ -125,44 +174,6 @@ namespace Backgammon
 
         }
     }
-  
-    public class Player
-    {
-        // プロパティ
-        public string Color { get; private set; } = "white";
-        public string Other { get; private set; } = "black";
-
-
-        // メソッド
-        public void Init(string color)
-        {
-            if (Other == color)
-            {
-                this.Toggle();
-            }
-        }
-        public bool Toggle()
-        {
-            if ("white" == Color)
-            {
-                Color = "black";
-                Other = "white";
-            }
-            else if ("black" == Color)
-            {
-                Color = "white";
-                Other = "black";
-            }
-            else
-            {
-                Debug.LogError("PlayerクラスToggle関数でwhite, black以外の値がメンバ変数に代入されています。");
-                return false;
-            }
-            return true;
-        }
-
-    }
-
 
 
     public class Board
