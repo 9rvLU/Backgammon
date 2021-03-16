@@ -18,23 +18,7 @@ namespace Backgammon
         // Start is called before the first frame update
         void Start()
         {
-            var white = "white";
-            var black = "black";
 
-
-            this.MoveChip(white, 24, 4);
-            this.MoveChip(black, 17, 3); // hit!
-
-            _board.ShowProperty();
-            Debug.Log(string.Join(",", this.GetBeforePointCollection(white)));
-            Debug.Log(string.Join(",", this.GetBeforePointCollection(black)));
-
-
-            this.MoveChip(white, 25, 2); // enter
-
-            _board.ShowProperty();
-            Debug.Log(string.Join(",", this.GetBeforePointCollection(white)));
-            Debug.Log(string.Join(",", this.GetBeforePointCollection(black)));
         }
         // Update is called once per frame
         void Update()
@@ -176,21 +160,21 @@ namespace Backgammon
         public bool isCloseOut(string color)
         {
             var other = "";
-            var start = -1;
-            var end = -1;
+            var opponentHomeStart = -1;
+            var opponentHomeEnd = -1;
             var barID = -1;
             switch (color)
             {
                 case "white":
                     other = "black";
-                    start = 1;
-                    end = 6;
+                    opponentHomeStart = 19;
+                    opponentHomeEnd = 24;
                     barID = 25;
                     break;
                 case "black":
                     other = "white";
-                    start = 19;
-                    end = 24;
+                    opponentHomeStart = 1;
+                    opponentHomeEnd = 6;
                     barID = 0;
                     break;
             }
@@ -198,7 +182,7 @@ namespace Backgammon
 
             var result = true;
             result &= 0 != _board.ChipsCollection[color][barID];
-            for (var i = start; i <= end; i++)
+            for (var i = opponentHomeStart; i <= opponentHomeEnd; i++)
             {
                 result &= 1 < _board.ChipsCollection[other][i];
             }
@@ -216,6 +200,22 @@ namespace Backgammon
 
 
             return result;
+        }
+        public bool isWinner(string color)
+        {
+            var goalCount = 0;
+            switch (color)
+            {
+                case "white":
+                    goalCount = _board.ChipsCollection[color][0];
+                    break;
+                case "black":
+                    goalCount = _board.ChipsCollection[color][25];
+                    break;
+            }
+
+
+            return 15 == goalCount;
         }
     }
 
@@ -290,22 +290,13 @@ namespace Backgammon
                 }
             }
         }
-        public void Initialize()
+        public void Initialize(int[] initialChips)
         {
             // すべてのマスについてコマの数を0にする
             for (int i = 0; i < _point.Length; i++)
             {
                 _point[i] = ("white", 0);
             }
-
-
-            // コマの初期配置を定義
-            int[] initialChips = new int[15] {
-            6, 6, 6, 6,6,
-            8, 8, 8,
-            13, 13, 13, 13, 13,
-            24, 24
-        };
 
 
             // 初期配置に従ってコマを増やす
@@ -321,6 +312,19 @@ namespace Backgammon
 
             // ChipCollectionを更新
             this.UpdateChipsCollection();
+        }
+        public void Initialize()
+        {
+            // コマの初期配置を定義
+            int[] initialChips = new int[15] {
+            6, 6, 6, 6,6,
+            8, 8, 8,
+            13, 13, 13, 13, 13,
+            24, 24
+            };
+
+
+            this.Initialize(initialChips);
         }
         public int CountChips(int beforePoint, int afterPoint)
         {
