@@ -2,22 +2,47 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Dice : MonoBehaviour
+
+namespace Backgammon
 {
-    // Start is called before the first frame update
-    void Start()
+    public class Dice : MonoBehaviour
     {
+        public int Roll1 { get; private set; } = 1;
+        public int Roll2 { get; private set; } = 1;
 
-    }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+        // Start is called before the first frame update
+        void Start()
+        {
+            this.Roll();
+        }
 
-    public int Roll()
-    {
-        return Random.Range(0, 7);
+        // Update is called once per frame
+        void Update()
+        {
+
+        }
+
+        private bool isDoubles()
+        {
+            return Roll1 == Roll2;
+        }
+
+        void Roll()
+        {
+            Roll1 = Random.Range(0, 7);
+            Roll2 = Random.Range(0, 7);
+        }
+        public IEnumerable<int> GetRolls()
+        {
+            yield return Roll1;
+            yield return Roll2;
+
+            if (this.isDoubles())
+            {
+                yield return Roll1;
+                yield return Roll2;
+            }
+        }
     }
 }
