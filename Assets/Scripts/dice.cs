@@ -23,12 +23,8 @@ namespace Backgammon
 
         }
 
-        private bool isDoubles()
-        {
-            return Roll1 == Roll2;
-        }
 
-        void Roll()
+        public void Roll()
         {
             Roll1 = Random.Range(0, 7);
             Roll2 = Random.Range(0, 7);
@@ -43,6 +39,10 @@ namespace Backgammon
                 yield return Roll1;
                 yield return Roll2;
             }
+        }
+        public bool isDoubles()
+        {
+            return Roll1 == Roll2;
         }
     }
 }
