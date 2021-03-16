@@ -44,7 +44,7 @@ namespace Backgammon
 
 
         // メソッド
-        public bool MoveChip(string color, int beforePoint, int dice)
+        public int GetAfterPoint(string color, int beforePoint, int dice)
         {
             // コマが置けるマスのリストを作成
             var increasablePoints = new List<bool>();
@@ -75,7 +75,7 @@ namespace Backgammon
                     break;
                 default:
                     Debug.LogError($"BoardHandler: GetAfterPoint に不正な引数color = {color}が代入されました。");
-                    return false;
+                    return beforePoint;
             }
 
 
@@ -85,8 +85,7 @@ namespace Backgammon
             {
                 if (increasablePoints[afterPoint])
                 {
-                    _board.MoveChip(color, beforePoint, afterPoint);
-                    return true;
+                    return afterPoint;
                 }
             }
             // afterPoint == 0 or 25 のとき
@@ -95,8 +94,7 @@ namespace Backgammon
             {
                 if (allChipsAreInHome)
                 {
-                    _board.MoveChip(color, beforePoint, afterPoint);
-                    return true;
+                    return afterPoint;
                 }
             }
             // afterPoint < 0 or 25 < afterPoint のとき
@@ -106,14 +104,13 @@ namespace Backgammon
             {
                 if (allChipsAreInHome && distanceToGoal <= dice)
                 {
-                    _board.MoveChip(color, beforePoint, goalPoint);
-                    return true;
+                    return afterPoint;
                 }
             }
 
 
             // 全部に当てはまらないとき、もとのマスIDを返す
-            return false;
+            return beforePoint;
         }
         public IEnumerable<int> GetBeforePointCollection(string color)
         {
@@ -154,6 +151,10 @@ namespace Backgammon
                     }
                 }
             }
+        }
+        public void MoveChip(string color, int beforePoint, int afterPoint)
+        {
+            _board.MoveChip(color, beforePoint, afterPoint);
         }
         //public void LoadRecord()
         //{
