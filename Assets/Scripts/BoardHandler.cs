@@ -48,7 +48,20 @@ namespace Backgammon
         {
             // コマが置けるマスのリストを作成
             var increasablePoints = new List<bool>();
-            foreach (var item in _board.ChipsCollection[color])
+            var opponent = "";
+            switch (color)
+            {
+                case "white":
+                    opponent = "black";
+                    break;
+                case "black":
+                    opponent = "white";
+                    break;
+                default:
+                    Debug.LogError($"BoardHandler: GetAfterPoint に不正な引数color = {color}が代入されました。");
+                    return beforePoint;
+            }
+            foreach (var item in _board.ChipsCollection[opponent])
             {
                 increasablePoints.Add(2 > item);
             }
@@ -160,6 +173,50 @@ namespace Backgammon
         //{
 
         //}
+        public bool isCloseOut(string color)
+        {
+            var other = "";
+            var start = -1;
+            var end = -1;
+            var barID = -1;
+            switch (color)
+            {
+                case "white":
+                    other = "black";
+                    start = 1;
+                    end = 6;
+                    barID = 25;
+                    break;
+                case "black":
+                    other = "white";
+                    start = 19;
+                    end = 24;
+                    barID = 0;
+                    break;
+            }
+
+
+            var result = true;
+            result &= 0 != _board.ChipsCollection[color][barID];
+            for (var i = start; i <= end; i++)
+            {
+                result &= 1 < _board.ChipsCollection[other][i];
+            }
+
+
+            return result;
+        }
+        public bool cannotMoveChip(string color, int dice)
+        {
+            var result = true;
+            foreach(var item in this.GetBeforePointCollection(color))
+            {
+                result &= item == this.GetAfterPoint(color, item, dice);
+            }
+
+
+            return result;
+        }
     }
 
 
