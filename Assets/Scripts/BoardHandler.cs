@@ -18,23 +18,7 @@ namespace Backgammon
         // Start is called before the first frame update
         void Start()
         {
-            var white = "white";
-            var black = "black";
 
-
-            this.MoveChip(white, 24, 4);
-            this.MoveChip(black, 17, 3); // hit!
-
-            _board.ShowProperty();
-            Debug.Log(string.Join(",", this.GetBeforePointCollection(white)));
-            Debug.Log(string.Join(",", this.GetBeforePointCollection(black)));
-
-
-            this.MoveChip(white, 25, 2); // enter
-
-            _board.ShowProperty();
-            Debug.Log(string.Join(",", this.GetBeforePointCollection(white)));
-            Debug.Log(string.Join(",", this.GetBeforePointCollection(black)));
         }
         // Update is called once per frame
         void Update()
@@ -48,7 +32,20 @@ namespace Backgammon
         {
             // コマが置けるマスのリストを作成
             var increasablePoints = new List<bool>();
-            foreach (var item in _board.ChipsCollection[color])
+            var opponent = "";
+            switch (color)
+            {
+                case "white":
+                    opponent = "black";
+                    break;
+                case "black":
+                    opponent = "white";
+                    break;
+                default:
+                    Debug.LogError($"BoardHandler: GetAfterPoint に不正な引数color = {color}が代入されました。");
+                    return beforePoint;
+            }
+            foreach (var item in _board.ChipsCollection[opponent])
             {
                 increasablePoints.Add(2 > item);
             }
@@ -160,6 +157,66 @@ namespace Backgammon
         //{
 
         //}
+        public bool isCloseOut(string color)
+        {
+            var other = "";
+            var opponentHomeStart = -1;
+            var opponentHomeEnd = -1;
+            var barID = -1;
+            switch (color)
+            {
+                case "white":
+                    other = "black";
+                    opponentHomeStart = 19;
+                    opponentHomeEnd = 24;
+                    barID = 25;
+                    break;
+                case "black":
+                    other = "white";
+                    opponentHomeStart = 1;
+                    opponentHomeEnd = 6;
+                    barID = 0;
+                    break;
+            }
+
+
+            var result = true;
+            result &= 0 != _board.ChipsCollection[color][barID];
+            for (var i = opponentHomeStart; i <= opponentHomeEnd; i++)
+            {
+                result &= 1 < _board.ChipsCollection[other][i];
+            }
+
+
+            return result;
+        }
+        public bool cannotMoveChip(string color, int dice)
+        {
+            var result = true;
+            foreach(var item in this.GetBeforePointCollection(color))
+            {
+                result &= item == this.GetAfterPoint(color, item, dice);
+            }
+
+
+            return result;
+        }
+        public bool isWinner(string color)
+        {
+            var goalCount = 0;
+            switch (color)
+            {
+                case "white":
+                    goalCount = _board.ChipsCollection[color][0];
+                    break;
+                case "black":
+                    goalCount = _board.ChipsCollection[color][25];
+                    break;
+            }
+
+
+            return 15 == goalCount;
+        }
     }
 
 
@@ -233,22 +290,13 @@ namespace Backgammon
                 }
             }
         }
-        public void Initialize()
+        public void Initialize(int[] initialChips)
         {
             // すべてのマスについてコマの数を0にする
             for (int i = 0; i < _point.Length; i++)
             {
                 _point[i] = ("white", 0);
             }
-
-
-            // コマの初期配置を定義
-            int[] initialChips = new int[15] {
-            6, 6, 6, 6,6,
-            8, 8, 8,
-            13, 13, 13, 13, 13,
-            24, 24
-        };
 
 
             // 初期配置に従ってコマを増やす
@@ -264,6 +312,19 @@ namespace Backgammon
 
             // ChipCollectionを更新
             this.UpdateChipsCollection();
+        }
+        public void Initialize()
+        {
+            // コマの初期配置を定義
+            int[] initialChips = new int[15] {
+            6, 6, 6, 6,6,
+            8, 8, 8,
+            13, 13, 13, 13, 13,
+            24, 24
+            };
+
+
+            this.Initialize(initialChips);
         }
         public int CountChips(int beforePoint, int afterPoint)
         {
