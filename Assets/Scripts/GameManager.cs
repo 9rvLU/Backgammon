@@ -25,11 +25,8 @@ namespace Backgammon
         private _gameProcess _currentGameProcess = _gameProcess.DiceRoll;
 
 
-        private List<int> _rolls = new List<int>();
-
-
-        private Dice _dice = new Dice();
-        private BoardHandler _boardHandler = new BoardHandler();
+        private BoardHandler _boardHandler;
+        private Dice _dice;
 
 
         // property
@@ -104,14 +101,6 @@ namespace Backgammon
             }
 
 
-            // 出目を保持
-            _rolls.Clear();
-            foreach (var roll in _dice.GetRolls())
-            {
-                _rolls.Add(roll);
-            }
-
-
             // クローズアウトの処理
             var isCloseOut = false;
             isCloseOut = _boardHandler.isCloseOut(CurrentPlayer);
@@ -134,7 +123,7 @@ namespace Backgammon
 
             // ダンスの処理
             var isDance = true;
-            foreach(var roll in _rolls)
+            foreach(var roll in _dice.GetRolls())
             {
                 isDance &= _boardHandler.cannotMoveChip(CurrentPlayer, roll);
             }
@@ -182,7 +171,7 @@ namespace Backgammon
 
             // ダイス目を消費
             int dice = Mathf.Abs(afterPoint - CurrentBeforePoint);
-            _rolls.Remove(dice);
+            _dice.RemoveRoll(dice);
 
 
             //  勝利判定
@@ -193,7 +182,7 @@ namespace Backgammon
 
 
             // ダイスの目が残っているとき
-            if (0 < _rolls.Count)
+            if (!_dice.isEmpty())
             {
                 _currentGameProcess = _gameProcess.SelectingBeforePoint;
             }
