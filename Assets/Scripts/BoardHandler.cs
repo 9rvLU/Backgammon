@@ -2,11 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 
 namespace Backgammon
 {
-    public class BoardHandler : MonoBehaviour
+    public class BoardHandler : MonoBehaviour, IChipMover
     {
         // フィールド
         private Board _board = new Board();
@@ -474,4 +475,12 @@ namespace Backgammon
             Debug.Log(log);
         }
     }
+}
+
+
+// チップの移動用メッセージインターフェース
+public interface IChipMover : IEventSystemHandler
+{
+    void MoveChip(string player, int before, int after);
+    int GetAfterPoint(string player, int before, int dice);
 }
