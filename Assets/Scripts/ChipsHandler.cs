@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 
 
-public class ChipsHandler : MonoBehaviour
+public class ChipsHandler : MonoBehaviour, IUIHandler
 {
     // フィールド
     [SerializeField] int id = 0;
@@ -55,7 +55,7 @@ public class ChipsHandler : MonoBehaviour
         _mouseOver = false;
 
 
-        _activeChipNum = 3;
+        _activeChipNum = 0;
         _shownChipNum = _activeChipNum;
 
 
@@ -79,7 +79,6 @@ public class ChipsHandler : MonoBehaviour
             //this._activeChipNum = 3;
         }
     }
-
     // マウスカーソルがオブジェクトから離れた時の処理
     private void OnMouseExit()
     {
@@ -88,14 +87,12 @@ public class ChipsHandler : MonoBehaviour
 
         //this._activeChipNum = 2;
     }
-
     // マウスが押された時の処理
     private void OnMouseDown()
     {
         _mouseDraging = true;
         _shownChipNum = _activeChipNum - 1;
     }
-
     // マウスが押されてから離された時の処理
     private void OnMouseUp()
     {
@@ -133,7 +130,7 @@ public class ChipsHandler : MonoBehaviour
         _shownChipNum = _activeChipNum;
         _mouseDraging = false;
     }
-
+    // マウスドラッグ中の処理
     private void OnMouseDrag()
     {
         var plane = new Plane(Vector3.up, 100 * Vector3.up);
@@ -148,7 +145,7 @@ public class ChipsHandler : MonoBehaviour
 
     private void UpdatePointMat()
     {
-        Color translucentWhite = new Color(0f, 0f, 0f, 0.2f);
+        Color translucentWhite = new Color(0f, 0f, 0f, 0.5f);
         Color transparent = Color.clear;
 
         Color emissionBlue = Color.blue;
@@ -276,4 +273,20 @@ public class ChipsHandler : MonoBehaviour
             cnt++;
         }
     }
+
+    public void SetChipNum(int input)
+    {
+        _activeChipNum = input;
+    }
+    public void SetActive(bool flag)
+    {
+        _isSelectable = flag;
+    }
+}
+
+// チップの移動用メッセージインターフェース
+public interface IUIHandler : IEventSystemHandler
+{
+    void SetChipNum(int input);
+    void SetActive(bool flag);
 }
